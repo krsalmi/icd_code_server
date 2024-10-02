@@ -6,7 +6,6 @@ certifi==2024.8.30
 charset-normalizer==3.3.2
 click==8.1.7
 distro==1.9.0
-Flask==3.0.3
 graphlib_backport==1.1.0
 h11==0.14.0
 httpcore==1.0.5
@@ -34,4 +33,15 @@ typing_extensions==4.12.2
 tzdata==2024.2
 update==0.0.1
 urllib3==2.2.3
-Werkzeug==3.0.4
+
+
+Flask==2.2.3
+Werkzeug>=2.2.2,<3.0
+accelerate==0.28.0
+bitsandbytes==0.43.3
+peft==0.12.0
+bagelML==0.0.20
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.1.0+cu118
+torchvision==0.16.0+cu118
+torchaudio==2.1.0+cu118
