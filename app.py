@@ -3,12 +3,15 @@ import time
 from flask import Flask, request, jsonify
 import openai 
 import bagel
-from threading import Lock
 from dotenv import load_dotenv
 import requests
 import json
 import logging
 from utils import process_multiline_string, extract_documents_based_on_distance, make_json_objects, filter_unique_parent_codes
+import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import PeftModel, PeftConfig
+
 
 app = Flask(__name__)
 
@@ -18,9 +21,29 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Initialize global variables
-NGROK_API = None
-ngrok_lock = Lock()
+def load_model():
+    adapter_path = "adapter_model"
+    peft_config = PeftConfig.from_pretrained(adapter_path)
+    base_model_name = "bagelnet/Llama-3-8B"
+
+    quantization_config = BitsAndBytesConfig(
+        load_in_8bit=True,
+        llm_int8_threshold=6.0,
+        llm_int8_has_fp16_weight=False,
+    )
+
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base_model_name,
+        quantization_config=quantization_config,
+        device_map="auto",
+        trust_remote_code=True
+    )
+
+    model = PeftModel.from_pretrained(base_model, adapter_path)
+    tokenizer = AutoTokenizer.from_pretrained(base_model_name)
+    return model, tokenizer
+
+model, tokenizer = load_model()
 
 # Configure OpenAI API Key
 openai_key = os.getenv('OPENAI_API_KEY')
@@ -49,20 +72,6 @@ client = openai.OpenAI(
 def home():
     logger.info("Health check accessed.")
     return jsonify({"status": "OK", "message": "Clinical Note Processor is running."}), 200
-
-
-@app.route('/save_ngrok', methods=['POST'])
-def save_ngrok():
-    global NGROK_API
-    data = request.get_json()
-    if not data or 'ngrok_url' not in data:
-        logger.error("Missing 'ngrok_url' in request.")
-        return jsonify({"error": "Please provide 'ngrok_url' in the JSON body."}), 400
-
-    with ngrok_lock:
-        NGROK_API = data['ngrok_url'].rstrip('/')  # Remove trailing slash if any
-
-    return jsonify({"message": f"NGROK_API URL saved as {NGROK_API}."}), 200
 
 
 @app.route('/summarize', methods=['POST'])
@@ -94,7 +103,7 @@ def summarize():
             ]
         )
         summary = completion.choices[0].message.content
-        return jsonify({"summary": summary}), 200
+        return jsonify({"clinical_note_summary": summary}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -102,63 +111,55 @@ def summarize():
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    global NGROK_API
-    if not NGROK_API:
-        return jsonify({"error": "NGROK_API URL not set. Please POST to /save_ngrok first."}), 400
-
+    max_length=500
     data = request.get_json()
-    if not data or 'clinical note summary' not in data:
-        return jsonify({"error": "Please provide 'clinical note summary' in the JSON body."}), 400
+    if not data or 'clinical_note_summary' not in data:
+        return jsonify({"error": "Please provide 'clinical_note_summary' in the JSON body."}), 400
 
-    summary = data['clinical note summary']
-    generate_url = f"{NGROK_API}/generate"
-    logger.info("Generating ICD-10 codes.")
+    clinical_note_summary = data['clinical_note_summary']
+    logger.info("Calling fine-tuned model.")
 
-    max_retries = 5  # Define maximum number of retries
-    retry_delay = 1  # Define delay between retries in seconds
+    # Prepare the prompt
+    prompt = f"""
+    You are an expert medical coding assistant.
 
-    payload = {
-        "clinical note summary": summary
-    }
+    Task: Analyze the following summary of a clinical note and provide a list of appropriate ICD-10-CM codes that best relate to the medical information mentioned.
 
-    for attempt in range(1, max_retries + 1):
-        try:
-            response = requests.post(generate_url, json=payload)
-            logger.info(f"Attempt {attempt}: Received response with status code {response.status_code}.")
+    Instructions:
+    - Provide a maximum of 4 ICD-10-CM codes.
+    - Format: '[Code]: [Description]'
+    - List each code and its description on a new line.
+    - Only include the codes and their descriptions.
+    - Do NOT include any other text or commentary.
+    - Take a deep breath before you answer.
 
-            if response.status_code != 200:
-                logger.error(f"NGROK_API responded with status code {response.status_code}.")
-                return jsonify({"error": f"NGROK_API responded with status code {response.status_code}."}), 502
 
-            data = response.json()
+    Clinical Note Summary:
+    {clinical_note_summary}
+    """
+    try:
+        # Encode the input prompt
+        input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
 
-            # Check if the response content is empty or invalid
-            if not data or not data.get('validation'):
-                logger.warning(f"Attempt {attempt}: Empty validation received. Retrying in {retry_delay} second(s)...")
-                if attempt < max_retries:
-                    time.sleep(retry_delay)
-                    continue  # Retry the request
-                else:
-                    logger.error("Max retries exceeded with empty validation.")
-                    return jsonify({"error": "NGROK_API returned an empty response after multiple attempts."}), 502
-            else:
-                logger.info("ICD-10 codes generated successfully.")
-                return jsonify(data), 200
+        # Generate a response
+        with torch.no_grad():
+            output = model.generate(
+                input_ids,
+                max_length=input_ids.shape[1] + max_length,
+                num_return_sequences=1,
+                # no_repeat_ngram_size=2,
+                temperature=1,
+                top_p=0.9,
+                pad_token_id=tokenizer.eos_token_id,
+            )
 
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request to NGROK_API failed on attempt {attempt}: {str(e)}")
-            if attempt < max_retries:
-                logger.info(f"Retrying in {retry_delay} second(s)...")
-                time.sleep(retry_delay)
-                continue  # Retry the request
-            else:
-                logger.error("Max retries exceeded due to request failures.")
-                return jsonify({"error": f"NGROK_API request failed after {max_retries} attempts: {str(e)}"}), 502
+        # Decode and return the response
+        response = tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+        response_text = response.strip()
 
-    # This point is technically unreachable due to the return statements in the loop
-    logger.error("Failed to generate ICD-10 codes.")
-    return jsonify({"error": "Failed to generate ICD-10 codes."}), 502
-
+        return jsonify({'response': response_text})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/rag', methods=['POST'])
@@ -169,8 +170,8 @@ def rag():
 
     query_texts = data['query_text']
     query_texts = process_multiline_string(query_texts)
-    print("query_texts", query_texts)
-
+    logger.info(f"query_texts: {query_texts}")
+    
     payload = {
       "n_results": 1,
       "include": ["documents", "distances"],
