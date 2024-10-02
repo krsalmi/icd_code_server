@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import requests
 import json
 import logging
+from utils import process_multiline_string, extract_documents_based_on_distance, make_json_objects, filter_unique_parent_codes
 
 app = Flask(__name__)
 
@@ -28,7 +29,7 @@ if not openai_key:
     raise ValueError("OpenAI API key not found.")
 
 # Configure Bagel API Key and Asset ID
-BAGEL_API_KEY = os.getenv('BAGEL_JUDY')  # Ensure this environment variable is set
+BAGEL_API_KEY = os.getenv('BAGEL_API_KEY')
 ASSET_ID = "9a9f9cb6-f83d-480b-b0ab-718c274fab18"
 
 # Initialize Bagel Client
@@ -166,25 +167,26 @@ def rag():
     if not data or 'query_text' not in data:
         return jsonify({"error": "Please provide 'query_text' in the JSON body."}), 400
 
-    query_text = data['query_text']
+    query_texts = data['query_text']
+    query_texts = process_multiline_string(query_texts)
+    print("query_texts", query_texts)
 
     payload = {
-        "where": {
-            # Add any specific filters if needed
-        },
-        "where_document": {
-            # Add any document-specific filters if needed
-        },
-        "n_results": 3,
-        "include": ["metadatas", "documents", "distances"],
-        "query_texts": [query_text],
-        "padding": False,
+      "n_results": 1,
+      "include": ["documents", "distances"],
+      "query_texts": query_texts,
+      "padding": False,
     }
 
     try:
+        logger.info("Getting rag documents from Bagel.")
         response = bagel_client.query_asset(ASSET_ID, payload, BAGEL_API_KEY)
-        documents = response.get('documents', [])
-        return jsonify({"documents": documents}), 200
+        logger.info("Extracting documents according to distance.")
+        documents = extract_documents_based_on_distance(response)
+        json_docs = make_json_objects(documents)
+        logger.info("Filtering unique parent codes.")
+        filtered_json_docs = filter_unique_parent_codes(json_docs)
+        return jsonify({"rag_documents": filtered_json_docs}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -202,18 +204,22 @@ def finalize():
 
     # Ensure rag_documents is a list of dicts with 'document' keys
     try:
-        documents_text = "\n\n".join([json.dumps(doc['document']) if isinstance(doc['document'], dict) else str(doc['document']) for doc in rag_documents])
+        # Create a JSONL string by converting each document into a JSON string
+        documents_text = "\n".join([json.dumps(doc) for doc in rag_documents])
     except (TypeError, KeyError) as e:
         return jsonify({"error": f"Invalid 'rag_documents' format: {str(e)}"}), 400
 
     template = f"""
-    You are a medical coding expert. Validate the following ICD-10 codes and their descriptions against the provided clinical documents.
+    You are a medical coding expert. Validate the following list which includes ICD-10 codes and their descriptions against the provided clinical documents.
     Output the results in the following format:
     - Provide a maximum of 4 ICD-10-CM codes.
     - Format: '[Code]: [Description]'
     - List each code and its description on a new line.
     - Only include the codes and their descriptions—no extra text.
+    - Only include the codes that are relevant to the information to validate.
+    - If multiple very similar conditions are listed, only include the first one.
 
+    Information to validate:
     {llama_ret}
 
     Relevant Clinical Documents:
