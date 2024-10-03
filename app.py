@@ -129,8 +129,6 @@ def generate():
     - Format: '[Code]: [Description]'
     - List each code and its description on a new line.
     - Only include the codes and their descriptions.
-    - Do NOT include any other text or commentary.
-    - Take a deep breath before you answer.
 
     Clinical Note Summary:
     {clinical_note_summary}
