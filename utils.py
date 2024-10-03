@@ -1,4 +1,4 @@
-import json
+import json, re
 
 def process_multiline_string(multiline_str):
     """
@@ -10,11 +10,14 @@ def process_multiline_string(multiline_str):
     Returns:
     - list of str: A list containing non-empty, trimmed lines from the input string.
     """
+    # Compile a regex pattern to match lines containing "ICD", "10", and "code" (answers can start often with "ICD-10 codes:")
+    pattern = re.compile(r'icd.*10.*code', re.IGNORECASE)
+
     # Split the string into lines based on the newline character
     lines = multiline_str.split('\n')
 
     # Use list comprehension to strip whitespace and exclude empty lines
-    processed_lines = [line.strip() for line in lines if line.strip()]
+    processed_lines = [line.strip() for line in lines if line.strip() and not pattern.search(line)]
 
     return processed_lines
 
