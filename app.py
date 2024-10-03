@@ -138,7 +138,7 @@ def generate():
 
     try:
         attempt = 0
-        max_attempts = 6
+        max_attempts = 10
         response_text = ""
 
         while attempt < max_attempts:
@@ -154,7 +154,7 @@ def generate():
                     max_length=input_ids.shape[1] + max_length,
                     num_return_sequences=1,
                     # no_repeat_ngram_size=2,
-                    temperature=0.3,
+                    temperature=0.7,
                     top_p=0.9,
                     pad_token_id=tokenizer.eos_token_id,
                 )
@@ -168,7 +168,7 @@ def generate():
                 break
             else:
                 logger.info(f"Empty response received. Retrying... (Attempt {attempt}/{max_attempts})")
-                time.sleep(1.5)  # Wait 1.5 second before retrying
+                time.sleep(2)  # Wait 2 second before retrying
 
         if not response_text:
             return jsonify({'error': 'The model returned an empty response after 3 attempts.'}), 500
