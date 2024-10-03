@@ -137,7 +137,7 @@ def generate():
 
     try:
         attempt = 0
-        max_attempts = 3
+        max_attempts = 6
         response_text = ""
 
         while attempt < max_attempts:
@@ -167,7 +167,7 @@ def generate():
                 break
             else:
                 logger.info(f"Empty response received. Retrying... (Attempt {attempt}/{max_attempts})")
-                time.sleep(1)  # Wait 1 second before retrying
+                time.sleep(1.5)  # Wait 1.5 second before retrying
 
         if not response_text:
             return jsonify({'error': 'The model returned an empty response after 3 attempts.'}), 500
