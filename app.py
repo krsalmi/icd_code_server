@@ -117,6 +117,7 @@ def generate():
 
     clinical_note_summary = data['clinical_note_summary']
     logger.info("Calling fine-tuned model.")
+    logger.info(f"Clinical note summary: {clinical_note_summary}")
 
     # Prepare the prompt
     prompt = f"""
