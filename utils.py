@@ -32,6 +32,8 @@ def extract_documents_based_on_distance(rag_object, high_threshold=0.7, lower_th
     - list of str: A list of documents that meet the distance criteria.
     NOTE: Will assume number of docs in rag call n_results is set to 1.
     """
+    print("Rag object: ", rag_object)
+    print("keys: ", rag_object.keys())
     # Validate that 'distances' and 'documents' exist in the RAG object
     if 'distances' not in rag_object or 'documents' not in rag_object:
         raise KeyError("The RAG object must contain 'distances' and 'documents' keys.")
