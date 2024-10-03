@@ -110,7 +110,7 @@ def summarize():
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    max_length = 200
+    max_length = 150
     data = request.get_json()
     if not data or 'clinical_note_summary' not in data:
         return jsonify({"error": "Please provide 'clinical_note_summary' in the JSON body."}), 400
@@ -143,24 +143,22 @@ def generate():
         while attempt < max_attempts:
             attempt += 1
 
-            # Encode the input prompt and create attention mask
-            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-            input_ids = inputs["input_ids"]
-            attention_mask = inputs["attention_mask"]
+            # Encode the input prompt
+            input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
 
             # Generate a response
             with torch.no_grad():
                 output = model.generate(
-                    input_ids=input_ids,
-                    attention_mask=attention_mask,  # Pass attention mask
+                    input_ids,
                     max_length=input_ids.shape[1] + max_length,
                     num_return_sequences=1,
-                    temperature=1,
+                    # no_repeat_ngram_size=2,
+                    temperature=0.3,
                     top_p=0.9,
                     pad_token_id=tokenizer.eos_token_id,
                 )
 
-            # Decode and clean up the response
+            # Decode and return the response
             response = tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
             response_text = response.strip()
 
