@@ -110,7 +110,7 @@ def summarize():
 
 @app.route('/generate', methods=['POST'])
 def generate():
-    max_length = 500
+    max_length = 200
     data = request.get_json()
     if not data or 'clinical_note_summary' not in data:
         return jsonify({"error": "Please provide 'clinical_note_summary' in the JSON body."}), 400
@@ -125,10 +125,11 @@ def generate():
     Task: Analyze the following summary of a clinical note and provide a list of appropriate ICD-10-CM codes that best relate to the medical information mentioned.
 
     Instructions:
-    - Provide a maximum of 4 ICD-10-CM codes.
-    - Format: '[Code]: [Description]'
-    - List each code and its description on a new line.
-    - Only include the codes and their descriptions.
+
+    -Provide a maximum of 4 ICD-10-CM codes.
+    -Format: [Code]: [Description]
+    -List each code and its description on a new line.
+    -Only include the codes and their descriptions—no extra text.
 
     Clinical Note Summary:
     {clinical_note_summary}
