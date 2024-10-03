@@ -4,7 +4,6 @@ from flask import Flask, request, jsonify
 import openai 
 import bagel
 from dotenv import load_dotenv
-import requests
 import json
 import logging
 from utils import process_multiline_string, extract_documents_based_on_distance, make_json_objects, filter_unique_parent_codes
@@ -138,24 +137,40 @@ def generate():
     {clinical_note_summary}
     """
     try:
-        # Encode the input prompt
-        input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
+        attempt = 0
+        max_attempts = 3
+        response_text = ""
 
-        # Generate a response
-        with torch.no_grad():
-            output = model.generate(
-                input_ids,
-                max_length=input_ids.shape[1] + max_length,
-                num_return_sequences=1,
-                # no_repeat_ngram_size=2,
-                temperature=1,
-                top_p=0.9,
-                pad_token_id=tokenizer.eos_token_id,
-            )
+        while attempt < max_attempts:
+            attempt += 1
 
-        # Decode and return the response
-        response = tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
-        response_text = response.strip()
+            # Encode the input prompt
+            input_ids = tokenizer.encode(prompt, return_tensors="pt").to(model.device)
+
+            # Generate a response
+            with torch.no_grad():
+                output = model.generate(
+                    input_ids,
+                    max_length=input_ids.shape[1] + max_length,
+                    num_return_sequences=1,
+                    temperature=1,
+                    top_p=0.9,
+                    pad_token_id=tokenizer.eos_token_id,
+                )
+
+            # Decode and clean up the response
+            response = tokenizer.decode(output[0][input_ids.shape[1]:], skip_special_tokens=True)
+            response_text = response.strip()
+
+            # Check if the response is non-empty
+            if response_text:
+                break
+            else:
+                logger.info(f"Empty response received. Retrying... (Attempt {attempt}/{max_attempts})")
+                time.sleep(1)  # Wait 1 second before retrying
+
+        if not response_text:
+            return jsonify({'error': 'The model returned an empty response after 3 attempts.'}), 500
 
         return jsonify({'response': response_text})
     except Exception as e:
