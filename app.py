@@ -117,7 +117,7 @@ def generate():
 
     clinical_note_summary = data['clinical_note_summary']
     logger.info("Calling fine-tuned model.")
-    clinical_note_summary = clinical_note_summary.replace('\n', '')
+    clinical_note_summary = re.sub(r'\s+', ' ', clinical_note_summary).strip()
     logger.info(f"clinical_note_summary after newline removal: {clinical_note_summary}")
 
     # Prepare the prompt
