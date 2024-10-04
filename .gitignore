@@ -1,0 +1,7 @@
+__pycache__/
+bin/
+lib/
+include/
+.env
+pyvenv.cfg
+deleted_endpoint.py
