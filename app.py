@@ -73,6 +73,7 @@ def home():
     return jsonify({"status": "OK", "message": "Clinical Note Processor is running."}), 200
 
 
+# Currently not in use, summarization triggered directly from the frontend
 @app.route('/summarize', methods=['POST'])
 def summarize():
     data = request.get_json()
@@ -135,22 +136,6 @@ Instructions:
 
 Clinical Note Summary:
 {clinical_note_summary}"""
-
-    # prompt = f"""
-    # You are an expert medical coding assistant.
-
-    # Task: Analyze the following summary of a clinical note and provide a list of appropriate ICD-10-CM codes that best relate to the medical information mentioned.
-
-    # Instructions:
-
-    # -Provide a maximum of 4 ICD-10-CM codes.
-    # -Format: [Code]: [Description]
-    # -List each code and its description on a new line.
-    # -Only include the codes and their descriptions—no extra text.
-
-    # Clinical Note Summary:
-    # {clinical_note_summary}
-    # """
 
     try:
         attempt = 0
@@ -228,71 +213,6 @@ def rag():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-
-@app.route('/finalize', methods=['POST'])
-def finalize():
-    data = request.get_json()
-    if not data or 'llama_ret' not in data or 'rag_documents' not in data:
-        return jsonify({"error": "Please provide 'llama_ret' and 'rag_documents' in the JSON body."}), 400
-
-    llama_ret = data['llama_ret']
-    rag_documents = data['rag_documents']
-
-    # Ensure rag_documents is a list of dicts with 'document' keys
-    try:
-        # Create a JSONL string by converting each document into a JSON string
-        documents_text = "\n".join([json.dumps(doc) for doc in rag_documents])
-    except (TypeError, KeyError) as e:
-        return jsonify({"error": f"Invalid 'rag_documents' format: {str(e)}"}), 400
-
-    template = f"""
-    You are a medical coding expert. Validate the following list which includes ICD-10 codes and their descriptions against the provided clinical documents.
-    Output the results in the following format:
-    - Provide a maximum of 4 ICD-10-CM codes.
-    - Format: '[Code]: [Description]'
-    - List each code and its description on a new line.
-    - Only include the codes and their descriptions—no extra text.
-    - Only include the codes that are relevant to the information to validate.
-    - If multiple very similar conditions are listed, only include the first one.
-
-    Information to validate:
-    {llama_ret}
-
-    Relevant Clinical Documents:
-    {documents_text}
-
-    Please verify the accuracy of the ICD-10 codes and provide the correct ones.
-    """
-
-    try:
-        completion = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a medical coding expert.",
-                },
-                {
-                    "role": "user",
-                    "content": template,
-                }
-            ],
-            max_tokens=300,
-            temperature=0.3,
-        )
-        validation = completion.choices[0].message.content
-
-        return jsonify({"validation": validation}), 200
-
-
-    except openai.OpenAIError as e:
-        # Handle OpenAI API errors
-        return jsonify({"error": f"OpenAI API error: {str(e)}"}), 500
-    except Exception as e:
-        # Handle other exceptions
-        return jsonify({"error": str(e)}), 500
-    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001, debug=True)
