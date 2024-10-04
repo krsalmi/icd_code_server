@@ -1,3 +1,6 @@
+#This file is from Bagel 
+#https://github.com/BagelNetwork/hackers/blob/main/Runpod/download_model.py
+
 import os
 import bagel
 from getpass import getpass
