@@ -121,20 +121,35 @@ def generate():
 
     # Prepare the prompt
     prompt = f"""
-    You are an expert medical coding assistant.
+You are an expert medical coding assistant.
 
-    Task: Analyze the following summary of a clinical note and provide a list of appropriate ICD-10-CM codes that best relate to the medical information mentioned.
+Task: Analyze the following summary of a clinical note and provide a list of appropriate ICD-10-CM codes that best relate to the medical information mentioned.
 
-    Instructions:
+Instructions:
 
-    -Provide a maximum of 4 ICD-10-CM codes.
-    -Format: [Code]: [Description]
-    -List each code and its description on a new line.
-    -Only include the codes and their descriptions—no extra text.
+-Provide a maximum of 4 ICD-10-CM codes.
+-Format: [Code]: [Description]
+-List each code and its description on a new line.
+-Only include the codes and their descriptions—no extra text.
 
-    Clinical Note Summary:
-    {clinical_note_summary}
-    """
+Clinical Note Summary:
+{clinical_note_summary}"""
+
+    # prompt = f"""
+    # You are an expert medical coding assistant.
+
+    # Task: Analyze the following summary of a clinical note and provide a list of appropriate ICD-10-CM codes that best relate to the medical information mentioned.
+
+    # Instructions:
+
+    # -Provide a maximum of 4 ICD-10-CM codes.
+    # -Format: [Code]: [Description]
+    # -List each code and its description on a new line.
+    # -Only include the codes and their descriptions—no extra text.
+
+    # Clinical Note Summary:
+    # {clinical_note_summary}
+    # """
 
     try:
         attempt = 0
