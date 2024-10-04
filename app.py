@@ -169,7 +169,7 @@ Clinical Note Summary:
                     max_length=input_ids.shape[1] + max_length,
                     num_return_sequences=1,
                     # no_repeat_ngram_size=2,
-                    temperature=0.7,
+                    temperature=0.8,
                     top_p=0.9,
                     pad_token_id=tokenizer.eos_token_id,
                 )
@@ -202,6 +202,8 @@ def rag():
         return jsonify({"error": "Please provide 'query_text' in the JSON body."}), 400
 
     query_texts = data['query_text']
+    if not query_texts:
+        return jsonify({"error": "Provided 'query_text' cannot be empty."}), 400
     query_texts = process_multiline_string(query_texts)
     logger.info(f"query_texts: {query_texts}")
     
