@@ -117,7 +117,8 @@ def generate():
 
     clinical_note_summary = data['clinical_note_summary']
     logger.info("Calling fine-tuned model.")
-    logger.info(f"Clinical note summary: {clinical_note_summary}")
+    clinical_note_summary = clinical_note_summary.replace('\n', '')
+    logger.info(f"clinical_note_summary after newline removal: {clinical_note_summary}")
 
     # Prepare the prompt
     prompt = f"""
@@ -169,7 +170,7 @@ Clinical Note Summary:
                     max_length=input_ids.shape[1] + max_length,
                     num_return_sequences=1,
                     # no_repeat_ngram_size=2,
-                    temperature=0.8,
+                    temperature=0.6,
                     top_p=0.9,
                     pad_token_id=tokenizer.eos_token_id,
                 )
