@@ -103,13 +103,13 @@ prompt-toolkit==3.0.39
 psutil==5.9.6
 ptyprocess==0.7.0
 pure-eval==0.2.2
+pycairo==1.27.0
 pycparser==2.21
 pydantic==1.10.18
 Pygments==2.16.1
 PyGObject==3.42.1
 PyJWT==2.3.0
 pyparsing==2.4.7
-#python-apt==2.4.0+ubuntu2
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 python-json-logger==2.0.7
@@ -135,9 +135,9 @@ terminado==0.17.1
 tinycss2==1.2.1
 tokenizers==0.20.0
 tomli==2.0.1
-#torch==2.1.0+cu118  //install torch versions with appropriate cuda support
-#torchaudio==2.1.0+cu118
-#torchvision==0.16.0+cu118
+torch==2.1.0+cu118
+torchaudio==2.1.0+cu118
+torchvision==0.16.0+cu118
 tornado==6.3.3
 tqdm==4.66.5
 traitlets==5.13.0
