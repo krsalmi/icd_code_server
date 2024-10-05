@@ -135,9 +135,9 @@ terminado==0.17.1
 tinycss2==1.2.1
 tokenizers==0.20.0
 tomli==2.0.1
-torch==2.1.0+cu118
-torchaudio==2.1.0+cu118
-torchvision==0.16.0+cu118
+#torch==2.1.0+cu118  //install torch versions with appropriate cuda support
+#torchaudio==2.1.0+cu118
+#torchvision==0.16.0+cu118
 tornado==6.3.3
 tqdm==4.66.5
 traitlets==5.13.0
