@@ -139,7 +139,7 @@ Clinical Note Summary:
 
     try:
         attempt = 0
-        max_attempts = 10
+        max_attempts = 20
         response_text = ""
 
         while attempt < max_attempts:
@@ -172,7 +172,7 @@ Clinical Note Summary:
                 time.sleep(2)  # Wait 2 second before retrying
 
         if not response_text:
-            return jsonify({'error': 'The model returned an empty response after 3 attempts.'}), 500
+            return jsonify({'error': 'The model returned an empty response after max attempts attempts.'}), 500
 
         return jsonify({'response': response_text})
 
