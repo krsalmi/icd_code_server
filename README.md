@@ -14,8 +14,8 @@ Depending on your fine-tuned model size, you may need to increase to 2 GPUs.
 
 ## Setup and Running
 Create and activate a virtual environment:  
-`python -m venv .`  
-`source bin/activate`
+`python -m venv venv`  
+`source venv/bin/activate`
    
 Install the required packages:  
 `pip install -r requirements.txt`
