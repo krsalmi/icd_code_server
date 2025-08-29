@@ -13,17 +13,17 @@ Depending on your fine-tuned model size, you may need to increase to 2 GPUs.
 - .env file (contact the project maintainer for this file)
 
 ## Setup and Running
-Create and activate a virtual environment:
-`python -m venv .`
+Create and activate a virtual environment:  
+`python -m venv .`  
 `source bin/activate`
    
-Install the required packages:
+Install the required packages:  
 `pip install -r requirements.txt`
 
-Download the model:
+Download the model:  
 `python download_model.py`
    
-Run the server:
+Run the server:  
 `python app.py`
 
 ## Endpoints
